@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M5 Editor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600&family=VT323&display=swap" rel="stylesheet">
+<style>
+:root{
+  --case:#D9DCE0; --panel:#EEF0F2; --ink:#1F242B; --soft:#5B636D; --rule:#B9BEC5;
+  --lcd:#BFD0A6; --lcd-ink:#24301C; --heel:#2F6DA8; --toe:#A93F2D; --focus:#2F6DA8;
+  --c2:#6E8FB3; --c3:#8C7AB0; --c4:#5E9C8F; --c5:#B39A5C; --c6:#A8746A; --c9:#7C9A5A; --c10:#9A6E95; --cx:#8A9099;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --case:#23272D; --panel:#2D3239; --ink:#E6E8EB; --soft:#A2A9B2; --rule:#454C55;
+  --lcd:#9DB384; --lcd-ink:#1C2615; --heel:#6FA6DA; --toe:#E07A64; --focus:#6FA6DA; } }
+:root[data-theme="dark"]{ --case:#23272D; --panel:#2D3239; --ink:#E6E8EB; --soft:#A2A9B2; --rule:#454C55;
+  --lcd:#9DB384; --lcd-ink:#1C2615; --heel:#6FA6DA; --toe:#E07A64; --focus:#6FA6DA; }
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--case);color:var(--ink);font:400 16px/1.4 "Barlow Semi Condensed",system-ui,sans-serif;min-height:100vh}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+header{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid var(--rule)}
+h1{font-size:22px;font-weight:600;margin:0;letter-spacing:.01em}
+h1 small{font-weight:400;color:var(--soft);font-size:16px;margin-left:8px}
+.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:6px 12px;cursor:pointer}
+.btn:hover{border-color:var(--soft)}
+.btn.primary{background:var(--ink);color:var(--case);border-color:var(--ink)}
+.btn:disabled{opacity:.45;cursor:default}
+select{background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:6px 8px;max-width:200px}
+.status{padding:8px 24px;color:var(--soft);min-height:38px}
+.status.err{color:var(--toe)}
+main{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:24px;padding:8px 24px 32px;align-items:start}
+.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:6px}
+.tile{position:relative;display:flex;flex-direction:column;gap:6px;min-height:118px;padding:8px 7px 8px 11px;background:var(--panel);border:1px solid var(--rule);border-radius:4px;text-align:left;cursor:grab;overflow:hidden}
+.tile::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--cat,var(--cx))}
+.tile .num{font-weight:600;font-size:14px;color:var(--soft)}
+.tile .nm{font-family:VT323,monospace;font-size:19px;line-height:1;overflow-wrap:anywhere}
+.tile .fx{font-size:13px;color:var(--soft);font-style:italic;line-height:1.2}
+.tile .meta{margin-top:auto;font-size:13px;color:var(--soft)}
+.tile[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.tile.over{outline:2px dashed var(--heel);outline-offset:-3px}
+.tile.dragging{opacity:.4}
+.tile .dot{position:absolute;top:8px;right:7px;width:7px;height:7px;border-radius:50%;background:var(--toe)}
+.empty{grid-column:1/-1;border:1px dashed var(--rule);border-radius:4px;padding:48px 24px;text-align:center;color:var(--soft)}
+.empty strong{display:block;color:var(--ink);font-size:20px;font-weight:500;margin-bottom:6px}
+aside{background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:16px;position:sticky;top:16px}
+.lcd{background:var(--lcd);color:var(--lcd-ink);border-radius:4px;padding:10px 12px;box-shadow:inset 0 2px 6px rgba(0,0,0,.25)}
+.lcd input{width:100%;background:transparent;border:0;font-family:VT323,monospace;font-size:34px;line-height:1;color:var(--lcd-ink);padding:0}
+.lcd input:focus-visible{outline:1px dashed var(--lcd-ink);outline-offset:3px}
+.lcd .sub{font-family:VT323,monospace;font-size:20px;opacity:.8;display:flex;justify-content:space-between}
+.knobs{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 8px;margin:18px 0 6px}
+.knob{text-align:center}
+.knob svg{width:84px;height:84px;display:block;margin:0 auto}
+.knob .lbl{font-size:14px;color:var(--soft)}
+.knob .val{font-weight:600}
+.knob.off{opacity:.3}
+.knob.type{background:none;border:0;padding:0;cursor:pointer;border-radius:6px}
+.knob.type:hover .val{text-decoration:underline}
+.legend{display:flex;gap:16px;font-size:14px;color:var(--soft);margin:6px 0 14px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.facts{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:15px}
+.facts dt{color:var(--soft)}.facts dd{margin:0}
+.move{display:flex;gap:8px;margin-top:14px}
+.move .btn{flex:1}
+.note{font-size:14px;color:var(--soft);margin:14px 0 0}
+@media (max-width:1100px){ main{grid-template-columns:1fr} aside{position:static} .grid{grid-template-columns:repeat(6,minmax(0,1fr))} }
+@media (max-width:560px){ header,.status,main{padding-left:16px;padding-right:16px} .grid{grid-template-columns:repeat(3,minmax(0,1fr))} }
+@media (prefers-reduced-motion:no-preference){ .knob path.cur{transition:d .2s} }
+</style>
+</head>
+<body>
+<header>
+  <h1>M5 Editor <small>Line 6 M5 · 24 presets</small></h1>
+  <div class="actions">
+    <button class="btn" id="openBtn">Open .syx</button>
+    <input type="file" id="file" accept=".syx" hidden>
+    <button class="btn" id="midiBtn">Connect MIDI</button>
+    <select id="inSel" aria-label="MIDI input (from M5)" hidden></select>
+    <button class="btn" id="recvBtn" hidden>Receive dump</button>
+    <select id="outSel" aria-label="MIDI output (to M5)" hidden></select>
+    <button class="btn primary" id="sendBtn" hidden disabled>Send to M5</button>
+    <button class="btn" id="saveBtn" disabled>Save .syx</button>
+  </div>
+</header>
+<div class="status" id="status" role="status">Open a DUMP ALL file, or connect MIDI and receive one straight from the M5.</div>
+<main>
+  <section aria-label="Presets"><div class="grid" id="grid">
+    <div class="empty"><strong>No dump loaded</strong>Drop a .syx file anywhere on this page, or use Open .syx.</div>
+  </div></section>
+  <aside id="detail" aria-label="Selected preset" hidden>
+    <div class="lcd">
+      <label for="nameIn" class="sub"><span id="slotLbl">01</span><span id="tempoLbl"></span></label>
+      <input id="nameIn" maxlength="16" spellcheck="false" autocomplete="off">
+      <div class="sub" id="fxLbl"></div>
+    </div>
+    <div class="knobs" id="knobs"></div>
+    <div class="legend"><span><i style="background:var(--heel)"></i>Heel</span><span><i style="background:var(--toe)"></i>Toe</span><span><i style="background:var(--ink)"></i>Now</span></div>
+    <dl class="facts" id="facts"></dl>
+    <div class="move">
+      <button class="btn" id="leftBtn">Swap with previous</button>
+      <button class="btn" id="rightBtn">Swap with next</button>
+    </div>
+    <p class="note">Drag a preset onto another to swap them. Click the name to rename it (16 characters). Click the triangle to enter the effect's real name (like Tube Drive); it's remembered in this browser for every preset using that effect.</p>
+  </aside>
+</main>
+<script>
+// ---- M5 SysEx core (no DOM) ----
+const M5 = (() => {
+  const PRESETS = 24, MSG_PER = 10, RAW_LEN = 1200;
+  function splitMessages(bytes) {
+    const out = []; let i = 0;
+    while (i < bytes.length) {
+      if (bytes[i] !== 0xF0) { i++; continue; }
+      const j = bytes.indexOf(0xF7, i);
+      if (j < 0) break;
+      out.push(bytes.slice(i, j + 1)); i = j + 1;
+    }
+    return out;
+  }
+  const isLine6 = m => m[1] === 0x00 && m[2] === 0x01 && m[3] === 0x0C;
+  function unpack7(b) {
+    const out = [];
+    for (let g = 0; g < b.length; g += 8) {
+      const msb = b[g];
+      for (let k = 1; k < 8 && g + k < b.length; k++)
+        out.push(b[g + k] | ((msb >> (7 - k)) & 1 ? 0x80 : 0));
+    }
+    return out;
+  }
+  function pack7(raw) {
+    const out = [];
+    for (let g = 0; g < raw.length; g += 7) {
+      const d = raw.slice(g, g + 7); let msb = 0;
+      d.forEach((x, k) => { if (x & 0x80) msb |= 1 << (6 - k); });
+      out.push(msb, ...d.map(x => x & 0x7F));
+    }
+    return out;
+  }
+  const u32 = (r, o) => (r[o] | r[o+1] << 8 | r[o+2] << 16 | r[o+3] << 24) >>> 0;
+  function f32(r, o) { const dv = new DataView(new Uint8Array(r.slice(o, o + 4)).buffer); return dv.getFloat32(0, true); }
+  function setU32(r, o, v) { for (let k = 0; k < 4; k++) r[o + k] = (v >>> (8 * k)) & 0xFF; }
+  function checksum(r) {
+    const L = u32(r, 4); let s = 0;
+    for (let o = 4; o < L; o += 4) s = (s + u32(r, o)) >>> 0;
+    return s;
+  }
+  function parse(bytes) {
+    const msgs = splitMessages(bytes).filter(isLine6);
+    if (msgs.length !== PRESETS * MSG_PER + 4)
+      throw new Error(`Expected a DUMP ALL of 244 messages, found ${msgs.length}.`);
+    const presets = [];
+    for (let p = 0; p < PRESETS; p++) {
+      const group = msgs.slice(p * MSG_PER, p * MSG_PER + MSG_PER);
+      let raw = [];
+      group.forEach(m => raw.push(...unpack7(Array.from(m.slice(9, -2)))));
+      if (raw.length !== RAW_LEN) throw new Error(`Preset ${p + 1} has an unexpected size (${raw.length} bytes).`);
+      presets.push({ raw, headers: group.map(m => Array.from(m.slice(0, 9))),
+                     sizes: group.map(m => unpack7(Array.from(m.slice(9, -2))).length),
+                     checksumOk: checksum(raw) === u32(raw, 0) });
+    }
+    return { presets, globals: msgs.slice(PRESETS * MSG_PER).map(m => Array.from(m)) };
+  }
+  function info(p) {
+    const r = p.raw, n = r[336];
+    const knobs = [];
+    for (let k = 0; k < n; k++) {
+      const o = 340 + k * 16;
+      knobs.push({ value: f32(r, o + 4), heel: f32(r, o + 8), toe: f32(r, o + 12) });
+    }
+    return {
+      name: String.fromCharCode(...r.slice(256, 272)),
+      model: r[332], category: r[334], knobCount: n,
+      tempo: f32(r, 304), knobs,
+    };
+  }
+  function setName(p, name) {
+    const s = (name + ' '.repeat(16)).slice(0, 16);
+    for (let k = 0; k < 16; k++) { const c = s.charCodeAt(k); p.raw[256 + k] = c >= 32 && c < 127 ? c : 32; }
+  }
+  function presetMessages(p, slot) {
+    const r = p.raw.slice();
+    r[11] = slot;
+    setU32(r, 0, checksum(r));
+    const out = []; let pos = 0;
+    p.headers.forEach((h, i) => {
+      const chunk = r.slice(pos, pos + p.sizes[i]); pos += p.sizes[i];
+      const body = pack7(chunk);
+      const cs = (h[8] + body.reduce((a, b) => a + b, 0)) & 0x7F;
+      out.push([...h, ...body, cs, 0xF7]);
+    });
+    return out;
+  }
+  function build(dump) {
+    const msgs = [];
+    dump.presets.forEach((p, slot) => msgs.push(...presetMessages(p, slot)));
+    msgs.push(...dump.globals);
+    return msgs;
+  }
+  return { parse, info, setName, build, splitMessages, isLine6 };
+})();
+if (typeof module !== 'undefined') module.exports = M5;
+// ---- UI ----
+const $ = id => document.getElementById(id);
+let dump = null, sel = 0, changed = new Set(), midi = null, recv = null, fileName = 'M5 dump';
+const CAT = {2:'--c2',3:'--c3',4:'--c4',5:'--c5',6:'--c6',9:'--c9',10:'--c10'};
+const TYPE_DEFAULTS = {2:'Delay', 3:'Mod', 4:'Reverb', 5:'Dist', 6:'Filter', 9:'Filter', 10:'Filter'};
+let typeNames = {}; try { typeNames = JSON.parse(localStorage.getItem('m5TypeNames') || '{}'); } catch(e){}
+const MODEL_DEFAULTS = {
+  // effect names: from the factory-reset dump (factory preset name = effect name) and testing
+  '2:21':'Analog W/Mod', '2:23':'Tube Echo DryThru', '2:28':'Sweep Echo', '2:33':'Reverse', '2:35':'Auto-Volume Echo',
+  '3:55':'Analog Chorus', '3:61':'Opto Tremolo', '3:65':'Barberpole Phaser', '3:68':'Pattern Tremolo',
+  '4:28':"'63 Spring", '4:35':'Octo', '4:36':'Cave', '4:39':'Particle Verb',
+  '5:13':'Tube Drive', '5:14':'Screamer', '5:20':'Sub Octave Fuzz', '5:26':'Boost Comp',
+  '9:3':'Smart Harmony',
+  '10:17':'Seeker', '10:25':'Growler', '10:28':'Synth String', '10:29':'Voice Box'
+};
+let modelNames = {}; try { modelNames = JSON.parse(localStorage.getItem('m5ModelNames') || '{}'); } catch(e){}
+const modelName = (c, m) => modelNames[c+':'+m] || MODEL_DEFAULTS[c+':'+m] || '';
+function setModelName(c, m, v){ modelNames[c+':'+m] = v; try { localStorage.setItem('m5ModelNames', JSON.stringify(modelNames)); } catch(e){} }
+const typeName = c => typeNames[c] || TYPE_DEFAULTS[c] || `Type ${c}`;
+function setTypeName(c, v){ typeNames[c] = v; try { localStorage.setItem('m5TypeNames', JSON.stringify(typeNames)); } catch(e){} }
+const pad = n => String(n).padStart(2, '0');
+function status(t, err){ const s=$('status'); s.textContent=t; s.classList.toggle('err',!!err); }
+
+function load(bytes, name){
+  try {
+    dump = M5.parse(Array.from(bytes)); fileName = name || 'M5 dump'; sel = 0; changed.clear();
+    const bad = dump.presets.filter(p=>!p.checksumOk).length;
+    status(`Loaded ${name||'dump'}: 24 presets${bad?`, ${bad} with a checksum mismatch (they'll be fixed on save)`:''}.`);
+    $('saveBtn').disabled = false; $('sendBtn').disabled = !midi;
+    render();
+  } catch(e){ status(e.message, true); }
+}
+
+function render(){
+  const g = $('grid'); g.innerHTML = '';
+  dump.presets.forEach((p, i) => {
+    const inf = M5.info(p);
+    const b = document.createElement('button');
+    b.className = 'tile'; b.draggable = true; b.dataset.i = i;
+    b.setAttribute('aria-pressed', i === sel);
+    b.style.setProperty('--cat', `var(${CAT[inf.category]||'--cx'})`);
+    const expr = inf.knobs.some(k => Math.abs(k.heel - k.toe) > 0.001);
+    b.innerHTML = `<span class="num">${pad(i+1)}</span><span class="nm"></span><span class="fx"></span><span class="meta">${typeName(inf.category)}${expr?' · exp':''}</span>${changed.has(p)?'<span class="dot" title="Changed"></span>':''}`;
+    b.querySelector('.nm').textContent = inf.name.trim() || '(no name)';
+    const mn = modelName(inf.category, inf.model); b.querySelector('.fx').textContent = mn ? `"${mn}"` : '';
+    b.setAttribute('aria-label', `Preset ${i+1}, ${inf.name.trim()||'no name'}`);
+    b.onclick = () => { sel = i; render(); };
+    b.ondragstart = e => { e.dataTransfer.setData('text/plain', i); b.classList.add('dragging'); };
+    b.ondragend = () => b.classList.remove('dragging');
+    b.ondragover = e => { e.preventDefault(); b.classList.add('over'); };
+    b.ondragleave = () => b.classList.remove('over');
+    b.ondrop = e => { e.preventDefault(); e.stopPropagation(); b.classList.remove('over');
+      const from = +e.dataTransfer.getData('text/plain'); if (!isNaN(from)) swap(from, i); };
+    g.appendChild(b);
+  });
+  renderDetail();
+}
+
+function swap(a, b){
+  if (a === b || b < 0 || b > 23) return;
+  const P = dump.presets; [P[a], P[b]] = [P[b], P[a]];
+  changed.add(P[a]); changed.add(P[b]);
+  if (sel === a) sel = b; else if (sel === b) sel = a;
+  status(`Swapped ${pad(a+1)} and ${pad(b+1)}.`); render();
+}
+
+function arc(cx, cy, r, a0, a1){
+  const p = a => [cx + r*Math.cos(a), cy + r*Math.sin(a)];
+  const [x0,y0] = p(a0), [x1,y1] = p(a1);
+  return `M${x0.toFixed(2)} ${y0.toFixed(2)} A${r} ${r} 0 ${(a1-a0)>Math.PI?1:0} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;
+}
+const ang = v => (135 + 270*Math.max(0,Math.min(1,v))) * Math.PI/180;
+
+function knobSVG(k){
+  const c = 42, rTrack = 34, rBand = 38;
+  let s = `<svg viewBox="0 0 84 84" aria-hidden="true">`;
+  s += `<path d="${arc(c,c,rTrack,ang(0),ang(1))}" fill="none" stroke="var(--rule)" stroke-width="5" stroke-linecap="round"/>`;
+  if (k && Math.abs(k.heel-k.toe) > 0.001){
+    const lo = Math.min(k.heel,k.toe), hi = Math.max(k.heel,k.toe);
+    s += `<path d="${arc(c,c,rBand,ang(lo),ang(hi))}" fill="none" stroke="var(--soft)" stroke-width="2"/>`;
+    [['heel',k.heel],['toe',k.toe]].forEach(([n,v])=>{ const a=ang(v);
+      s += `<circle cx="${(c+rBand*Math.cos(a)).toFixed(2)}" cy="${(c+rBand*Math.sin(a)).toFixed(2)}" r="4" fill="var(--${n})"/>`; });
+  }
+  if (k){
+    s += `<path class="cur" d="${arc(c,c,rTrack,ang(0),ang(k.value))}" fill="none" stroke="var(--ink)" stroke-width="5" stroke-linecap="round"/>`;
+    const a = ang(k.value);
+    s += `<circle cx="${c}" cy="${c}" r="22" fill="var(--case)" stroke="var(--rule)"/>`;
+    s += `<line x1="${c+8*Math.cos(a)}" y1="${c+8*Math.sin(a)}" x2="${c+20*Math.cos(a)}" y2="${c+20*Math.sin(a)}" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/>`;
+  } else s += `<circle cx="${c}" cy="${c}" r="22" fill="none" stroke="var(--rule)"/>`;
+  return s + `</svg>`;
+}
+
+function renderDetail(){
+  const d = $('detail'); if (!dump){ d.hidden = true; return; } d.hidden = false;
+  const p = dump.presets[sel], inf = M5.info(p);
+  $('slotLbl').textContent = pad(sel+1);
+  $('tempoLbl').textContent = `${inf.tempo.toFixed(1)} BPM`;
+  const mnm = modelName(inf.category, inf.model); $('fxLbl').textContent = mnm ? `"${mnm}"` : `${typeName(inf.category)} model ${inf.model}`;
+  if (document.activeElement !== $('nameIn')) $('nameIn').value = inf.name.trimEnd();
+  const kn = $('knobs'); kn.innerHTML = '';
+  const sel1 = document.createElement('button');
+  sel1.className = 'knob type'; sel1.title = 'Click to enter the effect name the M5 shows for this model';
+  sel1.innerHTML = `<svg viewBox="0 0 84 84" aria-hidden="true"><path d="M42 22 L60 54 L24 54 Z" fill="none" stroke="var(--ink)" stroke-width="3" stroke-linejoin="round"/></svg><div class="val">${typeName(inf.category)}</div><div class="lbl">${modelName(inf.category, inf.model) || 'Model '+inf.model+' · name it'}</div>`;
+  sel1.onclick = () => { const v = prompt(`Effect name for ${typeName(inf.category)} model ${inf.model}, as the M5 shows it (e.g. Tube Drive):`, modelName(inf.category, inf.model));
+    if (v && v.trim()){ setModelName(inf.category, inf.model, v.trim()); render(); } };
+  kn.appendChild(sel1);
+  for (let i = 0; i < 5; i++){
+    const k = inf.knobs[i], el = document.createElement('div');
+    el.className = 'knob' + (k ? '' : ' off');
+    const sweep = k && Math.abs(k.heel-k.toe) > 0.001;
+    el.innerHTML = knobSVG(k) + `<div class="val">${k ? Math.round(k.value*100)+'%' : '–'}</div><div class="lbl">Knob ${i+1}${sweep?` · ${Math.round(k.heel*100)}→${Math.round(k.toe*100)}`:''}</div>`;
+    if (k) el.title = sweep ? `Now ${Math.round(k.value*100)}%. Expression sweeps from ${Math.round(k.heel*100)}% (heel) to ${Math.round(k.toe*100)}% (toe).` : `${Math.round(k.value*100)}%, not on the expression control.`;
+    kn.appendChild(el);
+  }
+  const sweeps = inf.knobs.map((k,i)=>Math.abs(k.heel-k.toe)>0.001?i+1:null).filter(Boolean);
+  $('facts').innerHTML = `<dt>Effect</dt><dd>${modelName(inf.category, inf.model) || 'unnamed model '+inf.model} (${typeName(inf.category)})</dd><dt>Knobs</dt><dd>${inf.knobCount}</dd><dt>Expression</dt><dd>${sweeps.length?'moves knob '+sweeps.join(', '):'not used'}</dd><dt>Saved</dt><dd>${p.raw[20]} times</dd>`;
+  $('leftBtn').disabled = sel === 0; $('rightBtn').disabled = sel === 23;
+}
+
+$('nameIn').oninput = e => {
+  const p = dump.presets[sel]; M5.setName(p, e.target.value); changed.add(p);
+  const t = document.querySelector(`.tile[data-i="${sel}"]`);
+  if (t){ t.querySelector('.nm').textContent = e.target.value.trim() || '(no name)';
+    if (!t.querySelector('.dot')) t.insertAdjacentHTML('beforeend','<span class="dot" title="Changed"></span>'); }
+};
+$('leftBtn').onclick = () => swap(sel, sel-1);
+$('rightBtn').onclick = () => swap(sel, sel+1);
+
+// files
+$('openBtn').onclick = () => $('file').click();
+$('file').onchange = async e => { const f = e.target.files[0]; if (f) load(new Uint8Array(await f.arrayBuffer()), f.name.replace(/\.syx$/i,'')); e.target.value=''; };
+document.addEventListener('dragover', e => e.preventDefault());
+document.addEventListener('drop', async e => { e.preventDefault(); const f = e.dataTransfer.files[0];
+  if (f) load(new Uint8Array(await f.arrayBuffer()), f.name.replace(/\.syx$/i,'')); });
+$('saveBtn').onclick = () => {
+  const bytes = new Uint8Array(M5.build(dump).flat());
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([bytes],{type:'application/octet-stream'}));
+  const stamp = new Date().toISOString().slice(0,16).replace('T',' ').replace(':','.');
+  a.download = `M5 dump ${stamp}.syx`; a.click(); URL.revokeObjectURL(a.href);
+  status(`Saved ${a.download}.`);
+};
+
+// MIDI
+$('midiBtn').onclick = async () => {
+  if (!navigator.requestMIDIAccess){ status('This browser has no Web MIDI. Use Chrome or Edge; files still work here.', true); return; }
+  try { midi = await navigator.requestMIDIAccess({ sysex:true }); }
+  catch(e){ status('MIDI access was refused. Allow MIDI and SysEx for this page, then try again.', true); return; }
+  const fill = (s, ports) => { s.innerHTML=''; ports.forEach(p=>{ const o=document.createElement('option'); o.value=p.id; o.textContent=p.name; s.appendChild(o); }); s.hidden=false; };
+  fill($('inSel'), [...midi.inputs.values()]); fill($('outSel'), [...midi.outputs.values()]);
+  $('recvBtn').hidden = false; $('sendBtn').hidden = false; $('sendBtn').disabled = !dump; $('midiBtn').hidden = true;
+  status('MIDI connected. Pick the ports your M5 is on.');
+};
+$('recvBtn').onclick = () => {
+  const inp = midi.inputs.get($('inSel').value); if (!inp) return;
+  if (recv){ inp.onmidimessage = null; recv = null; $('recvBtn').textContent='Receive dump'; status('Stopped waiting.'); return; }
+  recv = []; $('recvBtn').textContent = 'Stop waiting';
+  status('Waiting… on the M5, choose DUMP ALL? and hold ON/OFF while pressing Model Select.');
+  inp.onmidimessage = e => {
+    const d = e.data; if (d[0] !== 0xF0 || !M5.isLine6(d)) return;
+    recv.push(...d); const n = M5.splitMessages(recv).length;
+    status(`Receiving… ${n} of 244 messages.`);
+    if (n >= 244){ inp.onmidimessage = null; const bytes = recv; recv = null; $('recvBtn').textContent='Receive dump'; load(bytes, 'M5 (received)'); }
+  };
+};
+$('sendBtn').onclick = async () => {
+  const out = midi && midi.outputs.get($('outSel').value); if (!out || !dump) return;
+  if (!confirm('Send all 24 presets to the M5? This replaces every preset on the pedal.')) return;
+  const msgs = M5.build(dump); $('sendBtn').disabled = true;
+  for (let i = 0; i < msgs.length; i++){
+    out.send(msgs[i]); status(`Sending… ${i+1} of ${msgs.length}.`);
+    await new Promise(r => setTimeout(r, 25));
+  }
+  changed.clear(); render(); $('sendBtn').disabled = false;
+  status('Sent. The M5 now holds these 24 presets.');
+};
+document.addEventListener('keydown', e => {
+  if (!dump || e.target.tagName === 'INPUT') return;
+  if (e.altKey && e.key === 'ArrowLeft'){ swap(sel, sel-1); e.preventDefault(); }
+  if (e.altKey && e.key === 'ArrowRight'){ swap(sel, sel+1); e.preventDefault(); }
+});
+</script></body></html>
