@@ -2,7 +2,7 @@
 
 A small browser tool for the **Line 6 M5 Stompbox Modeler**. It shows all 24 presets of a DUMP ALL at once, lets you rename and reorder them, shows each preset's knob settings (including the expression-pedal heel/toe range), and sends the result back to the pedal.
 
-**Use it:** open the page in Chrome or Edge (Safari has no Web MIDI). Everything runs in your browser; nothing is uploaded.
+**Use it:** [open M5 Editor](https://harmonicworks.org/M5-editor/) in Chrome or Edge (Safari has no Web MIDI). Everything runs in your browser; nothing is uploaded.
 
 ## What it does
 - Load a DUMP ALL from a `.syx` file, or receive it straight from the M5 over MIDI
@@ -27,7 +27,7 @@ A small browser tool for the **Line 6 M5 Stompbox Modeler**. It shows all 24 pre
 - Real knob names per effect
 - Effect names for models not in the factory set (click the triangle to name one; it's remembered in your browser)
 
-## How this was made
-Built in one evening with Claude (Anthropic's AI), which did most of the reverse-engineering and coding from dumps I made on my own M5. Tested on real hardware.
+## Credits
+Made by **Maurice Hissink** (harmonicworks): idea, design and testing on my own M5, with **Claude** (Anthropic's AI) doing most of the reverse-engineering and coding from dumps I made. Built in one evening.
 
 MIT licence.
